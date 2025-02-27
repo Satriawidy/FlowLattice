@@ -151,14 +151,17 @@ class DiscreteFlow():
 
         sample_gen = self.serial_sample_generator(N_samples)
         for new_x, new_logq, new_logp in sample_gen:
-            if len(history['logp']) == 0:
-                accepted = True
+            new_x = grab(new_x)                                 # Detach all tensor here to save memory
+            new_logq = grab(new_logq)                           # Based on my experience, not performing detach
+            new_logp = grab(new_logp)                           # may crash the computer when we use large number
+            if len(history['logp']) == 0:                       # of samples, due to the computation graph that
+                accepted = True                                 # follows the torch.tensor object
             else:
                 last_logp = history['logp'][-1]
                 last_logq = history['logq'][-1]
-                p_accept = torch.exp((new_logp - new_logq) - (last_logp - last_logq))   #Default probability to accept
+                p_accept = np.exp((new_logp - new_logq) - (last_logp - last_logq))   #Default probability to accept
                 p_accept = min(1, p_accept)                     #If p > 1 (Delta < 0), just set p = 1
-                draw = torch.rand(1)                            #generate random number between 0 and 1
+                draw = np.random.uniform(0, 1)                  #generate random number between 0 and 1
                 if draw < p_accept:                             #If Delta < 0, always accept
                     accepted = True                             #If not, tend to accept as long as Delta << 1
                 else:
@@ -171,33 +174,7 @@ class DiscreteFlow():
             history['x'].append(new_x)
             history['accepted'].append(accepted)
         self.mcmc_history = history
-        return history    
-    
-
-    # This is experimental feature. Use carefully
-    def make_mcmc_ensemble_exp(self, N_samples):
-        sample_gen = self.serial_sample_generator(N_samples)
-        for new_x, new_logq, new_logp in sample_gen:
-            if len(self.exphistory['logp']) == 0:
-                accepted = True
-            else:
-                last_logp = self.exphistory['logp'][-1]
-                last_logq = self.exphistory['logq'][-1]
-                p_accept = torch.exp((new_logp - new_logq) - (last_logp - last_logq))   #Default probability to accept
-                p_accept = min(1, p_accept)                     #If p > 1 (Delta < 0), just set p = 1
-                draw = torch.rand(1)                            #generate random number between 0 and 1
-                if draw < p_accept:                             #If Delta < 0, always accept
-                    accepted = True                             #If not, tend to accept as long as Delta << 1
-                else:
-                    accepted = False
-                    new_x = self.exphistory['x'][-1]
-                    new_logp = last_logp
-                    new_logq = last_logq
-            self.exphistory['logp'].append(new_logp)
-            self.exphistory['logq'].append(new_logq)
-            self.exphistory['x'].append(new_x)
-            self.exphistory['accepted'].append(accepted)
-
+        return history   
     
 
 

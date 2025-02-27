@@ -66,7 +66,7 @@ def variablegenerator(flowphi4, num_total, num_cfgs, num_therm, L):
     for i in range(num_total):
         phi4_ens = flowphi4.make_mcmc_ensemble(N_samples = num_cfgs)
         print(f"Accept rate for (L = {L}):", np.mean(phi4_ens['accepted']))
-        cfgs = np.stack(list(map(grab, phi4_ens['x'])), axis=0)[num_therm:]
+        cfgs = np.array(phi4_ens['x'])[num_therm:]
         Gp0, mp0 = zerogreenfuncs(cfgs)
         Gp.append(Gp0)
         mp.append(mp0)
